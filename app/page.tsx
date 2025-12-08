@@ -1,14 +1,19 @@
+"use client"
+
 import SocketDemo from '../components/SocketDemo'
 
-export default function Home() {
+export default function Home() {    
+  const handleGetStarted = () => {
+    window.location.href = '/get-started'
+  }
+  const handleApiSocketRules = () => {
+    window.location.href = '/api-socket'
+  }
   return (
     <section className="text-center">
-      <h1 className="text-4xl font-bold mb-4">Welcome to Project 5</h1>
-      <p className="text-gray-600">Next.js + TypeScript + Tailwind scaffold</p>
 
-      <div className="mt-8">
-        <SocketDemo />
-      </div>
+      <button onClick={handleGetStarted} className='bg-sky-500 rounded-2xl p-4 mr-4'>Get Started</button>
+      <button onClick={handleApiSocketRules} className='bg-sky-500 rounded-2xl p-4'>API Socket Rules</button>
     </section>
   )
 }
