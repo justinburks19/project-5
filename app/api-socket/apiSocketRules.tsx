@@ -9,8 +9,7 @@ export default function ApiSocketRules() {
                 <li className="mb-1">Use <code>socket.on(event, callback)</code> to listen for events from the server.</li>
                 <li className="mb-1">Use <code>socket.disconnect()</code> to disconnect from the server when no longer needed.</li>
                 <li className="mb-1">Ensure proper error handling for all socket events.</li>
-                <li className="
-mb-1">Maintain a clean and organized code structure for socket interactions.</li>
+                <li className="mb-1">Maintain a clean and organized code structure for socket interactions.</li>
             </ul>
         </div>
     )

@@ -3,7 +3,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
     return (
         <>
-        <div className='w-full bg-blue-500 '> 
+        <div className='flex'> 
           {children}  
         </div>
         </>

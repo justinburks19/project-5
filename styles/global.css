@@ -6,5 +6,5 @@ html, body, #__next {
 }
 
 body {
-  @apply bg-white text-gray-900;
+  @apply bg-black text-white;
 }
