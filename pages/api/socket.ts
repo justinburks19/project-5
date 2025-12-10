@@ -2,6 +2,9 @@
 //==============================
 // TRaffic Controller
 //==============================
+
+//IO.emit sends to all clients
+// socket.emit sends to the client that sent the message
 import { NextApiRequest, NextApiResponse } from 'next'
 import { Server } from 'socket.io'
 
@@ -28,10 +31,25 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       console.log(
         '=============================\nSocket connected:', socket.id + "\n=============================")
 
-      socket.on('message', (msg: string, username?: string) => {
+      /* 
+      Listen for 'message' events from the client
+      When a message is received, log it and broadcast it to all connected clients
+      socket.on('What the server is listening for', 
+      (data from client) => { server logic }
+            Server Logic can include 
+            socket.emit('event name', data) to send to the specific client
+            io.emit('event name', data) to send to all connected clients
+            io.broadcast.emit('event name', data) to send to all except sender
+            io.to(room).emit('event name', data) to send to all in a room
+            socket.join(room) to join a room
+            socket.leave(room) to leave a room
+
+      );
+      */
+      socket.on('message', (username?: string, msg?: string) => {
         console.log('message from', socket.id, msg)
         // broadcast to all clients (including sender) - change to socket.broadcast.emit to exclude sender
-        io.emit('message', username, msg ); // Emit the message to all connected clients
+        io.emit('message', { username, msg } ); // Emit the message to all connected clients
         //server.
       })
 
@@ -47,8 +65,16 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       })
 
       //get the id of the socket
-      socket.on(`get-id`, (id) => {
-        socket.emit('get-id', socket.id)
+      socket.on(`get-id`, () => {
+        console.log('get-id event received for socket:', socket.id)
+        io.emit('get-id', socket.id) //emit to all clients
+      })
+
+      //Server Wide Messages
+      socket.on('server-message', (msg) => {
+        console.log('Server-wide message from', socket.id, msg)
+        // Broadcast to only this client
+        socket.emit('server-message', msg) // Only this client gets it 
       })
 
     })

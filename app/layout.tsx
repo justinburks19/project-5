@@ -11,8 +11,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-gray-50 text-gray-900">
         <main className=" min-h-screen items-center justify-center p-6 sticky justify-items-center">
           <div className="w-full max-w-3xl">
-            <h1 className="text-4xl font-bold mb-4 p-2">
-              <ThreeDText text="Welcome to Project 5" /></h1>
+              <ThreeDText text="Welcome to Project 5" />
       <p className="text-gray-600">Next.js + TypeScript + Socket.io + React</p>
       <ol className="list-decimal list-inside text-2xl">
         Important Socket.io commands include

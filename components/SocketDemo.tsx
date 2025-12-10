@@ -2,9 +2,10 @@
 //==============================
 // car driving on the road the controller manages the traffic (socket connections)
 //==============================
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { connect, io, type Socket } from 'socket.io-client'
 import { Connect } from './io-calls/io-connections'
+import { serverHooks } from 'next/dist/server/app-render/entry-base'
 
 //socket will be used to connect to server!
 let socket: Socket | null = null
@@ -14,8 +15,14 @@ export default function SocketDemo() {
   const [connected, setConnected] = useState(false)
   //will hold messages from 
   const [messages, setMessages] = useState<string[]>([])
+  //input value
   const [value, setValue] = useState('')
+  //username state
   const [userName, setUserName] = useState<string | null>(null)
+  //List of Users
+  const [users, setUsers] = useState<React.ReactNode[]>([])
+  
+
 
   const handleDisconnect = () => {
     if (socket) {
@@ -46,8 +53,18 @@ export default function SocketDemo() {
 
     //handshack to connect
     socket = Connect();
-    console.log('Socket connected')
 
+    // Set to listen for events from the server
+      socket.on('get-id', (id: string) => {
+        console.log('Received id for user list:', id)
+        setUsers((prevUsers) => [...prevUsers, id])
+     
+      });
+      //we can now call get-id event to get the id of the socket
+      socket.emit('get-id');
+      //set users list for all to see
+
+      
     //server event listeners 
     /*
     server.on 
@@ -57,13 +74,28 @@ export default function SocketDemo() {
     console.log('Socket disconnected')
 
     socket.on('message', (msg: string) => {
-      setMessages((m) => [...m, msg])
-    })
+      console.log('Message received:', msg)
+      // Handle the received message (e.g., update state to display it)
+      /*
+        Steps of the process:
+        1. Client emits 'message' event with username and msg to server
+        2. Server receives 'message' event, logs it, and broadcasts it to all clients
+        3. All connected clients receive the 'message' event with the message data
+        4. Each client updates its messages state to include the new message
+      */
+      setMessages((prev) => [...prev, msg])
+    });
 
-    socket.emit('message', 'You are like a car so lets drive this thing!')
+    socket.on('server-message', (msg) => {
+      console.log('Server-wide message received:', msg)
+      // Handle the received server-wide message
+      setMessages((m) => [...m, `(Server Message): ${msg}`])
+    });
 
     socket.emit('custom-event', { info: 'This is a custom event from the client.' })
-    console.log('Custom event emitted from client')
+
+    socket.emit('server-message', 'We are about to cook. Concepts of Socket.IO!')
+
 
     // Cleanup on unmount
     // Disconnect the socket when the component unmounts
@@ -71,7 +103,11 @@ export default function SocketDemo() {
     // when the component is no longer in use.
     return () => {
       if (socket) {
+        //remove users from the list
+        users.splice(users.indexOf(socket.id), 1)
+        //disconnect socket
         socket.disconnect()
+        socket.off('get-id')
         console.log('Socket disconnected')
         socket = null
       }
@@ -84,25 +120,23 @@ export default function SocketDemo() {
     //if a socket then create!
     if (!value.trim()) return
     if(!connected) return
-    //send a message!
-    socket.emit('message', value)
+    //send a message to the server!
+    socket.emit('message', userName ? userName : 'Anonymous', value)
     /*=================
       messages set here
       =================
     */
-    setMessages((m) => [...m, `${socket?.id}: ${value}`])
     setValue('')
   }
 
 
   const userNameValue = () => {
-   //if else bloacks
-
-   if (socket) {
-     if (userName !== null) {
+    
+   if (socket) { //if socket exists
+     if (userName) { //if username exists
       return userName
    }
-      return `<--------`
+      return socket.id
    } else {
       return 'No Socket Connected'
    }
@@ -175,11 +209,16 @@ export default function SocketDemo() {
 
       <ul className="mt-4 space-y-1 max-h-40 overflow-auto text-left">
         {messages.map((m, i) => (
-          <li key={i} className="text-sm">
+          <li key={i} className="text-sm flexss">
             {m}
           </li>
         ))}
       </ul>
+      {users.map((user, index) => (
+        <div key={index} className="mt-2 p-2 border rounded">
+          <strong>User {index + 1} ID:</strong> {user}
+        </div>
+      ))}
     </div>
   )
 }

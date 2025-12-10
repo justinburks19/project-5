@@ -26,5 +26,3 @@ Files added:
 - `tailwind.config.js`, `postcss.config.js` — Tailwind setup
 - `app/layout.tsx`, `app/page.tsx` — Next app router entry points
 - `styles/globals.css` — Tailwind imports
-
-If you'd like, I can also run `npm install` here for you and start the dev server (but I won't unless you ask).
