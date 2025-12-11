@@ -16,7 +16,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     // Server is created by passing the underlying HTTP server to the Server constructor
     const io = new Server((res.socket as any).server, {
       // optional: customize pingInterval, cors, etc.
-      path: '/api/socket'
+      path: '/api/socket',
     });
 
     //io is now initialized and attached to the server 
@@ -47,7 +47,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       );
       */
       socket.on('message', (username?: string, msg?: string) => {
-        console.log('message from', socket.id, msg)
+        console.log('Server has a message from', socket.id, msg)
         // broadcast to all clients (including sender) - change to socket.broadcast.emit to exclude sender
         io.emit('message', { username, msg } ); // Emit the message to all connected clients
         //server.

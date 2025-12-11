@@ -1,6 +1,6 @@
 "use client"
 
-import SocketDemo from '../components/SocketDemo'
+import SocketDemo from '../clientRoom/SocketDemo'
 
 export default function Home() {    
   const handleGetStarted = () => {

@@ -1,5 +1,5 @@
 "use client"
-import SocketDemo from "../../components/SocketDemo";
+import SocketDemo from "../../clientRoom/SocketDemo";
 import {GoHome} from '../../helpers/goHome'
 export default function getStarted() {
     return (
