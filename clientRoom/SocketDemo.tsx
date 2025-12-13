@@ -43,6 +43,8 @@ export default function SocketDemo() {
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   //pending friends requests
   const [friendRequests, setFriendRequests] = useState<number>(0);
+  //users asking to be my friend
+  const [friendRequestUsers, setFriendRequestUsers] = useState<string[]>([]);
   //User Clicks on Friend Requests to view them
   const [viewingFriendRequests, setViewingFriendRequests] = useState<boolean>(false);
   function socketStatus() {
@@ -104,8 +106,8 @@ export default function SocketDemo() {
 
     socket.emit('friend-request', { toUsername: username, fromUsername: userName });
     alert(`Friend request sent to ${username}`);
-    setViewingFriendRequests(true);
     console.log(`set viewingFriendRequests to true`);
+    setFriendRequestUsers((prev) => [...prev, username]);
 
   }
 
@@ -332,7 +334,7 @@ export default function SocketDemo() {
           <section>
             <button className='bg-sky-300 p-2 mt-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
             title={undefined}
-            onChange={() => setViewingFriendRequests(true)}>
+            onClick = {() => setViewingFriendRequests(true)} >
               <ThreeDText text="Friend Requests"/>{friendRequests > 0 ? `(${friendRequests})` : ''}</button>
           </section>
           {/* Display messages and users */}
@@ -366,20 +368,20 @@ export default function SocketDemo() {
             </ul>
           </div>
           </>
-          ) : (
+          ) : 
+          (
         <div className="mt-4">
-          <h3 className="font-bold mb-2">Pending Friend Requests:</h3>
-          {friendRequests === 0 ? (
-            <p>No pending friend requests.</p>
-          ) : (
-            <ul className="space-y-1 h-full text-left">
-              {Array.from({ length: friendRequests }).map((_, index) => (
-                <li key={index} className="text-lg flex w-full">
-                  Friend Request #{index + 1}
-                </li>
-              ))}
-            </ul>
-          )}
+        {friendRequestUsers.map((user, index) => (
+          <li key={index} className="text-lg flex w-full">
+            <h3 className="font-bold mb-2">Pending Friend Requests from: {user}</h3>
+            <button className='bg-green-500/80 rounded-xl px-1 font-semibold'> Accept</button>
+            <button className='bg-red-500/80 rounded-xl px-1 font-semibold ml-2'> Decline</button>
+          </li>
+        ))}
+        {friendRequests === 0 ? (
+          <p>No pending friend requests.</p>
+        ) : null}
+        
           <button
             className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
             onClick={() => setViewingFriendRequests(false)}
