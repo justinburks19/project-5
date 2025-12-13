@@ -4,6 +4,7 @@
 //==============================
 import React, { useEffect, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
+import { ThreeDText } from '../styles/theeDText'
 
 
 let socket: Socket | null = null
@@ -36,6 +37,14 @@ export default function SocketDemo() {
   const [allUsers, setAllUsers] = useState<{ socketId: string, username: string | null }[]>([])
   //Submit Name 
   const [nameSubmitted, setNameSubmitted] = useState(false)
+  //User is typing state
+  const [userTyping, setUserTyping] = useState<{ username: string; msg: string } | null>(null)
+  //timout for typing
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  //pending friends requests
+  const [friendRequests, setFriendRequests] = useState<number>(0);
+  //User Clicks on Friend Requests to view them
+  const [viewingFriendRequests, setViewingFriendRequests] = useState<boolean>(false);
   function socketStatus() {
     return (
       <div className="flex justify-center grid grid-cols-2">
@@ -84,6 +93,20 @@ export default function SocketDemo() {
         ) : <button onClick={handleDisconnect} className="bg-red-600 text-white px-3 py-1 rounded col-span-3 max-w-sm"> Disconnect Socket </button>
         }
       </div>)
+  }
+
+  function handleFriendRequest(username: string) {
+    //to send a friend request
+    //get their socket id and username
+    //emit an event to the server with that info
+    //server will then forward to that specific client
+    if (!socket || !socket.connected) return
+
+    socket.emit('friend-request', { toUsername: username, fromUsername: userName });
+    alert(`Friend request sent to ${username}`);
+    setViewingFriendRequests(true);
+    console.log(`set viewingFriendRequests to true`);
+
   }
 
   //set the creating and setting up of the socket connection
@@ -135,7 +158,7 @@ export default function SocketDemo() {
       //set socket id state
       const socketId = call.id;
       if (!socketId) return;
-      setSocketId(socketId);
+      setSocketId(socketId.slice(0, 12) + "..."); //shorten for display and then add ...;
 
       //register username with server
       call.emit('register', userName.trim());
@@ -170,7 +193,7 @@ export default function SocketDemo() {
     //listener for registetered event
     call.on('registered', (data: { socketId: string; username: string }) => {
       console.log('Registered with server:', data)
-      setMessages((prev) => [...prev, `Registered name: ${data.username}, Socket ID: ${data.socketId}`])
+      //setMessages((prev) => [...prev, `Registered name: ${data.username}, Socket ID: ${data.socketId}`])
     })
 
     call.on("users-update", (users: { socketId: string; username: string }[]) => {
@@ -187,6 +210,19 @@ export default function SocketDemo() {
       setMessages((prev) => [...prev, `User ${userName}, socket id ${data.socketId}, Reason: ${data.reason}`]);
     });
 
+    call.on("user-typing", (data: { socketId: string; username: string }) => {
+      console.log('User typing:', data);
+      setUserTyping({ username: data.username, msg: 'is typing...' });
+    });
+
+    call.on("user-stopped-typing", () => {
+      setUserTyping(null);
+    })
+
+    call.on("friend-request", (data: { fromUsername: string }) => {
+      alert(`You have a new friend request from ${data.fromUsername}`);
+      setFriendRequests((prev) => prev + 1);
+    });
   }
 
   const handleDisconnect = () => {
@@ -256,7 +292,7 @@ export default function SocketDemo() {
             <div>
               <label className="mb-2 font-bold">Socket ID:</label>
               <div className="mb-2 font-bold">
-                {socket ? socket.id : 'No Socket Connected'}
+                {socket ? socketId : 'No Socket Connected'}
               </div>
             </div>
             <div>
@@ -271,32 +307,88 @@ export default function SocketDemo() {
           <div className="mt-3 flex flex-col gap-2">
             <input
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) => {
+                setValue(e.target.value)
+                //emit typing event
+                if (socket && socket.connected) {
+                  socket.emit('user-typing', { username: userName })
+                }
+
+                if (typingTimeout) {
+                  clearTimeout(typingTimeout);
+                }
+                setTypingTimeout(setTimeout(() => {
+                  socket?.emit("user-stopped-typing");
+                }, 800));
+              }}
               className="flex-1 border px-2 py-1 rounded"
               placeholder="Type a message"
             />
-            <button onClick={send} className="bg-blue-600 text-white px-3 py-1 rounded">
+            <button onClick={send} className="bg-blue-600 text-white px-3 py-1 rounded hover:cursor-pointer">
               Send
             </button>
           </div>
 
+          <section>
+            <button className='bg-sky-300 p-2 mt-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
+            title={undefined}
+            onChange={() => setViewingFriendRequests(true)}>
+              <ThreeDText text="Friend Requests"/>{friendRequests > 0 ? `(${friendRequests})` : ''}</button>
+          </section>
+          {/* Display messages and users */}
+          {!viewingFriendRequests ? (
+            <>
           <ul className="mt-4 space-y-1 max-h-40 overflow-auto text-left">
             {messages.map((m, i) => (
-              <li key={i} className="text-sm flexss">
+              <li key={i} className="text-sm flex">
                 {m}
               </li>
             ))}
           </ul>
           <div className="mt-4">
+            {userTyping && (
+              <p className="italic text-gray-500">{`${userTyping.username} ${userTyping.msg}`}</p>
+            )}
+          </div>
+          <div className="mt-4">
             <h3 className="font-bold mb-2">All Connected Users:</h3>
-            <ul className="space-y-1 max-h-40 overflow-auto text-left">
+            <ul className="space-y-1 h-full text-left">
               {allUsers.map((user, index) => (
-                <li key={index} className="text-lg">
-                  {`User Name: ${user.username}, Socket ID: ${user.socketId}`}
+                <li key={index} className="text-lg flex w-full">
+                  {`User Name: ${user.username} `} 
+                  <div className='ml-auto'>
+                  <button className='bg-orange-500/80 rounded-xl px-1 font-semibold'
+                  title={undefined}
+                  onClick={() => user.username && handleFriendRequest(user.username)}><ThreeDText text="Add Friend"/></button>
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
+          </>
+          ) : (
+        <div className="mt-4">
+          <h3 className="font-bold mb-2">Pending Friend Requests:</h3>
+          {friendRequests === 0 ? (
+            <p>No pending friend requests.</p>
+          ) : (
+            <ul className="space-y-1 h-full text-left">
+              {Array.from({ length: friendRequests }).map((_, index) => (
+                <li key={index} className="text-lg flex w-full">
+                  Friend Request #{index + 1}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
+            onClick={() => setViewingFriendRequests(false)}
+          >
+            Back to Chat
+          </button>
+        </div>
+        
+          )}
         </div>
 
       )

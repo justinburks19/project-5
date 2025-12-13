@@ -72,8 +72,36 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         //then broadcast updated users list
         io.emit("users-update", usersArray());
         io.emit("user-disconnected", { socketId: socket.id, reason });
-        
       });
+
+      socket.on("user-typing", (data: { socketId: string; username: string }) => {
+        //broadcast to all other clients that this user is typing
+        socket.broadcast.emit("user-typing", {
+          socketId: socket.id,
+          username: data.username,
+        });
+      });
+
+      socket.on("user-stopped-typing", () => {
+        //broadcast to all other clients that this user stopped typing
+        socket.broadcast.emit("user-stopped-typing", {
+          socketId: socket.id,
+        });
+      });
+
+      socket.on("friend-request", (data: { toUsername: string; fromUsername: string }) => {
+        //find the socket ID of the user with toUsername
+        const toSocketId = Array.from(userIDS.entries()).find(
+          ([, username]) => username === data.toUsername
+        )?.[0];
+        if (toSocketId) {
+          //emit friend-request event to that specific socket
+          io.to(toSocketId).emit("friend-request", {
+            fromUsername: data.fromUsername,
+          });
+        }
+      });
+
     });
   } else {
     console.log("Socket.IO already running");

@@ -9,7 +9,7 @@ return (
       className={`
         ${className ? className : ""}
         relative 
-        pb-2
+        
       `} //Take in a className prop for text size, relative positioning
     >
       {/* Back Layer*/}
