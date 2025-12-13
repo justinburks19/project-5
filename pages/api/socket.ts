@@ -10,6 +10,8 @@ import { Server } from 'socket.io'
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   // if there isnt a response socket then attach Socket.IO
+  const userIDS = new Map<string, string>();
+  
   if (!(res.socket as any).server.io) {
     console.log('Initializing Socket.IO server...')
     // io needs to be connected to the underlying HTTP server
@@ -30,7 +32,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     io.on('connection', (socket) => {
       console.log(
         '=============================\nSocket connected:', socket.id + "\n=============================")
-
       /* 
       Listen for 'message' events from the client
       When a message is received, log it and broadcast it to all connected clients
@@ -46,6 +47,14 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
       );
       */
+     //=============================
+     // Direct events from this client socket
+     //=============================
+     socket.on('register', (username: string) => {
+        console.log('Registering username', username, 'for socket', socket.id)
+        userIDS.set(socket.id, username); //userIDS can now be used to lookup username by socket id
+      });
+      
       socket.on('message', (username?: string, msg?: string) => {
         console.log('Server has a message from', socket.id, msg)
         // broadcast to all clients (including sender) - change to socket.broadcast.emit to exclude sender
@@ -77,6 +86,11 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         socket.emit('server-message', msg) // Only this client gets it 
       })
 
+      //get my username
+      socket.on('get-username', (data) => {
+        const username = userIDS.get(socket.id) ?? null;
+      
+      
     })
   } else {
     console.log('Socket.IO already running')

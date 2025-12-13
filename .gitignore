@@ -5,3 +5,6 @@ dist/
 .env.local
 .vscode/
 .DS_Store
+
+.git_BACKUP/
+
