@@ -1,100 +1,80 @@
-//Setup socket connection on server side
-//==============================
-// TRaffic Controller
-//==============================
+import type { NextApiRequest, NextApiResponse } from "next";
+import { Server } from "socket.io";
 
-//IO.emit sends to all clients
-// socket.emit sends to the client that sent the message
-import { NextApiRequest, NextApiResponse } from 'next'
-import { Server } from 'socket.io'
+// A collection to map socket IDs to usernames
+const userIDS = new Map<string, string>();
+
+// Helper to convert userIDS map to an array of user objects
+function usersArray() {
+  return Array.from(userIDS.entries()).map(([socketId, username]) => ({
+    socketId,
+    username,
+  }));
+}
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  // if there isnt a response socket then attach Socket.IO
-  const userIDS = new Map<string, string>();
-  
+  // Ensure Socket.IO server is only initialized once
   if (!(res.socket as any).server.io) {
-    console.log('Initializing Socket.IO server...')
-    // io needs to be connected to the underlying HTTP server
-    // Server is created by passing the underlying HTTP server to the Server constructor
+    console.log("Initializing Socket.IO server...");
+
+    // Create a new Socket.IO server
     const io = new Server((res.socket as any).server, {
-      // optional: customize pingInterval, cors, etc.
-      path: '/api/socket',
+      path: "/api/socket",
     });
 
-    //io is now initialized and attached to the server 
-    //response.socket is the underlying HTTP server
-    (res.socket as any).server.io = io
+    // Attach Socket.IO server to Next.js server instance
+    (res.socket as any).server.io = io;
 
-    //server/io is ensures connection is fired when a client connects
-    //io is the Socket.IO server that manages all clients
-    //socket represents one connected client; we listen for events from that client (like 'message' and 'disconnect')
+    // Listen for client connections
+    io.on("connection", (socket) => {
+      console.log("Socket connected:", socket.id);
 
-    io.on('connection', (socket) => {
-      console.log(
-        '=============================\nSocket connected:', socket.id + "\n=============================")
-      /* 
-      Listen for 'message' events from the client
-      When a message is received, log it and broadcast it to all connected clients
-      socket.on('What the server is listening for', 
-      (data from client) => { server logic }
-            Server Logic can include 
-            socket.emit('event name', data) to send to the specific client
-            io.emit('event name', data) to send to all connected clients
-            io.broadcast.emit('event name', data) to send to all except sender
-            io.to(room).emit('event name', data) to send to all in a room
-            socket.join(room) to join a room
-            socket.leave(room) to leave a room
+      // ✅ Register user (NO ACK)
+      socket.on("register", (username: string) => {
+        // validate username by trimming whitespace
+        const clean = (username ?? "").trim();
+        if (!clean) {
+          socket.emit("register-error", { error: "Invalid username" });
+          return;
+        }
 
-      );
-      */
-     //=============================
-     // Direct events from this client socket
-     //=============================
-     socket.on('register', (username: string) => {
-        console.log('Registering username', username, 'for socket', socket.id)
-        userIDS.set(socket.id, username); //userIDS can now be used to lookup username by socket id
+        // store username for this socket
+        userIDS.set(socket.id, clean);
+
+        // confirm registration to ONLY this client
+        socket.emit("registered", { socketId: socket.id, username: clean });
+
+        // broadcast updated users list to everyone
+        io.emit("users-update", usersArray());
       });
-      
-      socket.on('message', (username?: string, msg?: string) => {
-        console.log('Server has a message from', socket.id, msg)
-        // broadcast to all clients (including sender) - change to socket.broadcast.emit to exclude sender
-        io.emit('message', { username, msg } ); // Emit the message to all connected clients
-        //server.
-      })
 
-      // Handle disconnection event by listening for 'disconnect' event
-      socket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', socket.id, reason)
-      })
+      // Chat message: use stored username
+      socket.on("message", (msg: string) => {
+        const username = userIDS.get(socket.id) ?? "Anonymous";
+        io.emit("message", { socketId: socket.id, username, msg });
+      });
 
-      // custom events can be added here
-      socket.on('custom-event', (data) => {
-        console.log('Custom event from', socket.id, data)
-        // Handle custom event logic here
-      })
-
-      //get the id of the socket
-      socket.on(`get-id`, () => {
-        console.log('get-id event received for socket:', socket.id)
-        io.emit('get-id', socket.id) //emit to all clients
-      })
-
-      //Server Wide Messages
-      socket.on('server-message', (msg) => {
-        console.log('Server-wide message from', socket.id, msg)
-        // Broadcast to only this client
-        socket.emit('server-message', msg) // Only this client gets it 
-      })
-
-      //get my username
-      socket.on('get-username', (data) => {
+      //this client asks for its username
+      socket.on("get-username", () => {
         const username = userIDS.get(socket.id) ?? null;
-      
-      
-    })
+        socket.emit("username", { socketId: socket.id, username });
+      });
+
+      // client requests current users list
+      socket.on("get-users", () => {
+        socket.emit("users-update", usersArray());
+      });
+
+      socket.on("disconnect", (reason) => {
+        console.log("Socket disconnected:", socket.id, reason);
+        userIDS.delete(socket.id);
+        io.emit("users-update", usersArray());
+        io.emit("user-disconnected", { socketId: socket.id, reason });
+      });
+    });
   } else {
-    console.log('Socket.IO already running')
+    console.log("Socket.IO already running");
   }
 
-  res.status(200).end()
+  res.status(200).end();
 }

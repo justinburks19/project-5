@@ -10,10 +10,10 @@ export default function Home() {
     window.location.href = '/api-socket'
   }
   return (
-    <section className="text-center">
+    <section className="text-center pt-5">
 
-      <button onClick={handleGetStarted} className='bg-sky-500 rounded-2xl p-4 mr-4'>Get Started</button>
-      <button onClick={handleApiSocketRules} className='bg-sky-500 rounded-2xl p-4'>API Socket Rules</button>
+      <button onClick={handleGetStarted} className='
+      bg-sky-500 rounded-2xl p-4 mr-4 font-extrabold'>Chat Room</button>
     </section>
   )
 }
