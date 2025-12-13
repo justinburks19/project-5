@@ -183,8 +183,8 @@ export default function SocketDemo() {
     });
 
     call.on("user-disconnected", (data: { socketId: string; reason: string }) => {
-      console.log(`User disconnected: ${data.socketId}, Reason: ${data.reason}`);
-      setMessages((prev) => [...prev, `User disconnected: ${data.socketId}, Reason: ${data.reason}`]);
+      console.log(`User name: ${data.socketId}, Reason: ${data.reason}`);
+      setMessages((prev) => [...prev, `User ${userName}, socket id ${data.socketId}, Reason: ${data.reason}`]);
     });
 
   }

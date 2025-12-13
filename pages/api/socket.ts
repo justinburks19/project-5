@@ -67,9 +67,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
       socket.on("disconnect", (reason) => {
         console.log("Socket disconnected:", socket.id, reason);
+          //remove from userIDS map
         userIDS.delete(socket.id);
+        //then broadcast updated users list
         io.emit("users-update", usersArray());
         io.emit("user-disconnected", { socketId: socket.id, reason });
+        
       });
     });
   } else {
