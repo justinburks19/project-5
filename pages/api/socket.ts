@@ -102,6 +102,19 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         }
       });
 
+      socket.on("friend-request-accepted", (data: { toUsername: string; fromUsername: string }) => {
+        //find the socket ID of the user with toUsername
+        const toSocketId = Array.from(userIDS.entries()).find(
+          ([, username]) => username === data.toUsername
+        )?.[0]; //the 0 is just to get the socketId from the [socketId, username]
+        if (toSocketId) {
+          //emit friend-request-accepted event to that specific socket
+          io.to(toSocketId).emit("friend-request-accepted", {
+            fromUsername: data.fromUsername,
+          });
+        }
+      });
+
     });
   } else {
     console.log("Socket.IO already running");

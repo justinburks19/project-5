@@ -47,6 +47,10 @@ export default function SocketDemo() {
   const [friendRequestUsers, setFriendRequestUsers] = useState<string[]>([]);
   //User Clicks on Friend Requests to view them
   const [viewingFriendRequests, setViewingFriendRequests] = useState<boolean>(false);
+  //MyfriendsList
+  const [friendsList, setFriendsList] = useState<string[]>([]);
+  //view friends list function
+  const [viewingFriendsList, setViewingFriendsList] = useState<boolean>(false);
   function socketStatus() {
     return (
       <div className="flex justify-center grid grid-cols-2">
@@ -107,8 +111,7 @@ export default function SocketDemo() {
     socket.emit('friend-request', { toUsername: username, fromUsername: userName });
     alert(`Friend request sent to ${username}`);
     console.log(`set viewingFriendRequests to true`);
-    setFriendRequestUsers((prev) => [...prev, username]);
-
+    //setFriendRequestUsers((prev) => [...prev, username]);
   }
 
   //set the creating and setting up of the socket connection
@@ -148,6 +151,10 @@ export default function SocketDemo() {
     call.off('registered')
     call.off('users-update')
     call.off('register-error')
+    call.off('user-disconnected')
+    call.off('user-typing')
+    call.off('user-stopped-typing')
+    call.off('friend-request')
 
     /*===================================================
     Listen for messages from server
@@ -224,6 +231,13 @@ export default function SocketDemo() {
     call.on("friend-request", (data: { fromUsername: string }) => {
       alert(`You have a new friend request from ${data.fromUsername}`);
       setFriendRequests((prev) => prev + 1);
+      setFriendRequestUsers((prev) => [...prev, data.fromUsername]);
+    });
+
+    //accepted friends request listener 
+    call.on("friend-request-accepted", (data: { fromUsername: string }) => {
+      alert(`${data.fromUsername} accepted your friend request!`);
+      setFriendsList((prev) => [...prev, data.fromUsername]);
     });
   }
 
@@ -250,6 +264,13 @@ export default function SocketDemo() {
         socket.off('message')
         socket.off('server-message')
         socket.off('get-id')
+        socket.off('registered')
+        socket.off('users-update')
+        socket.off('register-error')
+        socket.off('user-disconnected')
+        socket.off('user-typing')
+        socket.off('user-stopped-typing')
+        socket.off('friend-request')
         socket.disconnect()
         console.log('Socket disconnected on unmount')
         socket = null
@@ -331,11 +352,30 @@ export default function SocketDemo() {
             </button>
           </div>
 
-          <section>
+          <section className='grid grid-cols-2 gap-1'>
             <button className='bg-sky-300 p-2 mt-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
             title={undefined}
             onClick = {() => setViewingFriendRequests(true)} >
               <ThreeDText text="Friend Requests"/>{friendRequests > 0 ? `(${friendRequests})` : ''}</button>
+          <button className='bg-green-300 p-2 mt-2 ml-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
+            title={undefined}
+            onClick = {() => setViewingFriendsList(!viewingFriendsList)} >
+              <ThreeDText text="My Friends"/>{friendsList.length > 0 ? `(${friendsList.length})` : ''}</button>
+          {viewingFriendsList && (
+            <div className="mt-4 Flex">
+              {friendsList.length === 0 ? (
+                <p>You have no friends added yet.</p>
+              ) : (
+                <ul className="space-y-1 h-full text-left">
+                  {friendsList.map((friend, index) => (
+                    <li key={index} className="text-lg flex w-full">
+                      {`Friend Name: ${friend}`}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           </section>
           {/* Display messages and users */}
           {!viewingFriendRequests ? (
@@ -357,11 +397,18 @@ export default function SocketDemo() {
             <ul className="space-y-1 h-full text-left">
               {allUsers.map((user, index) => (
                 <li key={index} className="text-lg flex w-full">
-                  {`User Name: ${user.username} `} 
+                  {/* Display 'You' if the user is the current user */}
+                  {`User Name: ${user.username !== userName ? user.username : 'You'} `} 
                   <div className='ml-auto'>
+                  {/* Only show "Add Friend" button if not self and not already a friend */}
+                  {user.username === userName ? (
+                    <button>Friends</button>
+                  ) : (
                   <button className='bg-orange-500/80 rounded-xl px-1 font-semibold'
                   title={undefined}
-                  onClick={() => user.username && handleFriendRequest(user.username)}><ThreeDText text="Add Friend"/></button>
+                  onClick={() => user.username && handleFriendRequest(user.username)}>{userName !== user.username && <ThreeDText text="Add Friend"/>}</button>
+                  )}
+                  
                   </div>
                 </li>
               ))}
@@ -371,16 +418,41 @@ export default function SocketDemo() {
           ) : 
           (
         <div className="mt-4">
-        {friendRequestUsers.map((user, index) => (
-          <li key={index} className="text-lg flex w-full">
-            <h3 className="font-bold mb-2">Pending Friend Requests from: {user}</h3>
-            <button className='bg-green-500/80 rounded-xl px-1 font-semibold'> Accept</button>
-            <button className='bg-red-500/80 rounded-xl px-1 font-semibold ml-2'> Decline</button>
-          </li>
-        ))}
         {friendRequests === 0 ? (
           <p>No pending friend requests.</p>
-        ) : null}
+        ) : (
+          <>
+          {friendRequestUsers.map((username, index) => (
+            <div key={index} className="mb-2 p-2 border rounded">
+              <p>{username} has sent you a friend request.</p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="bg-green-600 text-white px-3 py-1 rounded"
+                  onClick={() => {
+                    alert(`You accepted the friend request from ${username}`);
+                    setFriendRequests((prev) => Math.max(prev - 1, 0));
+                    setFriendRequestUsers((prev) => prev.filter((user) => user !== username));
+                    setFriendsList((prev) => [...prev, username]);
+                    socket?.emit('friend-request-accepted', { toUsername: username, fromUsername: userName!});
+                  }}
+                >
+                  Accept
+                </button>
+                <button
+                  className="bg-red-600 text-white px-3 py-1 rounded"
+                  onClick={() => {
+                    alert(`You declined the friend request from ${username}`);
+                    setFriendRequests((prev) => Math.max(prev - 1, 0));
+                    setFriendRequestUsers((prev) => prev.filter((user) => user !== username));
+                  }}
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+          </>
+        )}
         
           <button
             className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
