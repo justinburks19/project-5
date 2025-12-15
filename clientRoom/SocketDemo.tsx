@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { ThreeDText } from '../styles/theeDText'
+import {motion} from 'framer-motion'
 
 
 let socket: Socket | null = null
@@ -379,8 +380,17 @@ export default function SocketDemo() {
           </section>
           {/* Display messages and users */}
           {!viewingFriendRequests ? (
+            /* Display chat messages and all users when not viewing friend requests */
             <>
           <ul className="mt-4 space-y-1 max-h-40 overflow-auto text-left">
+            <motion.div className='border-2 flex justify-center mb-2'
+            initial={{backgroundColor: 'rgba(255, 255, 255, 0)'}}
+            animate={{backgroundColor: 'linear-gradient(90deg, rgba(30,0,128,1) 50%, rgba(2,192,203,1) 80%, rgba(200,0,0,1) 100%, )'}}
+            transition={{duration: 2, repeat: Infinity, repeatType: 'mirror'}}>
+            
+            <ThreeDText text="Public Chat Messages" className='text-2xl'
+            />
+            </motion.div>
             {messages.map((m, i) => (
               <li key={i} className="text-sm flex">
                 {m}
@@ -402,7 +412,9 @@ export default function SocketDemo() {
                   <div className='ml-auto'>
                   {/* Only show "Add Friend" button if not self and not already a friend */}
                   {user.username === userName ? (
-                    <button>Friends</button>
+                    null
+                  ) : friendsList.includes(user.username!) ? (
+                    <span className='font-semibold text-green-600'>Friends</span>
                   ) : (
                   <button className='bg-orange-500/80 rounded-xl px-1 font-semibold'
                   title={undefined}
