@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { ThreeDText } from '../styles/theeDText'
-import {motion} from 'framer-motion'
+import { motion } from 'framer-motion'
 
 
 let socket: Socket | null = null
@@ -65,30 +65,30 @@ export default function SocketDemo() {
     if (connected || nameSubmitted) return null;
     return (
       <>
-      <div>
-        <label>Name:</label>
-        <input
-          type="text"
-          value={userName ?? ''}
-          onChange={(e) => setUserName(e.target.value)}
-          className="border px-2 py-1 rounded w-full"
-          placeholder="Enter your name"
-        />
-      </div>
-      <div className="flex w-full justify-center pt-2">
-        <button
-          onClick={() => {
-            if (!userName || userName.trim() === '') {
-              alert('Please enter a valid name before submitting.');
-              return;
-            }
-            setNameSubmitted(true);
-          }}
-          className="bg-blue-600 text-white px-3 py-1 rounded col-span-3 max-w-sm"
-        >
-          Submit Name
-        </button>
-      </div>
+        <div>
+          <label>Name:</label>
+          <input
+            type="text"
+            value={userName ?? ''}
+            onChange={(e) => setUserName(e.target.value)}
+            className="border px-2 py-1 rounded w-full"
+            placeholder="Enter your name"
+          />
+        </div>
+        <div className="flex w-full justify-center pt-2">
+          <button
+            onClick={() => {
+              if (!userName || userName.trim() === '') {
+                alert('Please enter a valid name before submitting.');
+                return;
+              }
+              setNameSubmitted(true);
+            }}
+            className="bg-blue-600 text-white p-2 m-3 rounded col-span-3 max-w-sm hover:cursor-pointer"
+          >
+            Submit Name
+          </button>
+        </div>
       </>
     )
   }
@@ -164,7 +164,7 @@ export default function SocketDemo() {
     call.on('connect', () => {
       console.log('Socket connected with ID:', call.id)
       setConnected(true)
-      
+
       //set socket id state
       const socketId = call.id;
       if (!socketId) return;
@@ -184,7 +184,7 @@ export default function SocketDemo() {
     //listen for messages from server
     call.on("message", (data: { socketId: string; username: string; msg: string }) => {
       console.log("Message from server:", data);
-    setMessages((prev) => [...prev, `${data.username}: ${data.msg}`]);
+      setMessages((prev) => [...prev, `${data.username}: ${data.msg}`]);
     });
 
     //message from server to only this client
@@ -207,12 +207,12 @@ export default function SocketDemo() {
     })
 
     call.on("users-update", (users: { socketId: string; username: string }[]) => {
-    console.log("Users update:", users);
-    setAllUsers(users);
+      console.log("Users update:", users);
+      setAllUsers(users);
     });
 
     call.on("register-error", (data: { error: string }) => {
-    alert(data.error);
+      alert(data.error);
     });
 
     call.on("user-disconnected", (data: { socketId: string; reason: string }) => {
@@ -297,7 +297,7 @@ export default function SocketDemo() {
 
 
   return (
-    <div className="p-4 border rounded mx-auto w-xs sm:w-xs md:w-md lg:w-lg xl:w-xl 2xl:w-2xl">
+    <div className="p-4 border rounded-xl mx-auto w-xs sm:w-xs md:w-md lg:w-lg xl:w-xl 2xl:w-2xl">
       {socketStatus()}
 
       <div className='grid grid-cols'>
@@ -306,7 +306,7 @@ export default function SocketDemo() {
           {!connected && enterName()}
         </div>
         {nameSubmitted && (connectButton())}
-        
+
       </div>
 
       {userName && userName.trim() !== '' && connected && (
@@ -325,8 +325,74 @@ export default function SocketDemo() {
                 {userName ?? socket?.id}
               </div>
             </div>
-
           </div>
+
+          <section className='grid grid-cols-2 gap-1'>
+            {/* Row 1 being the buttons to view friend requests and friends list */}
+            <button className='bg-sky-300 p-2 mt-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
+              title={undefined}
+              onClick={() => {setViewingFriendRequests(!viewingFriendRequests), setViewingFriendsList(false)}} >
+              <ThreeDText text="Friend Requests" className='text-2xl text-slate-700'/>{friendRequests > 0 ? `(${friendRequests})` : ''}</button>
+            <button className='bg-green-300 p-2 mt-2 ml-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
+              title={undefined}
+              onClick={() => {setViewingFriendsList(!viewingFriendsList), setViewingFriendRequests(false)}} >
+              <ThreeDText text="My Friends" className='text-2xl text-slate-700'/>{friendsList.length > 0 ? `(${friendsList.length})` : ''}</button>
+            {viewingFriendsList && (
+              <div className="mt-4 Flex">
+                {friendsList.length === 0 ? (
+                  <p>You have no friends added yet.</p>
+                ) : (
+                  <ul className="space-y-1 h-full text-left">
+                    {friendsList.map((friend, index) => (
+                      <li key={index} className="text-lg flex w-full">
+                        {`Friend Name: ${friend}`}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {viewingFriendRequests && ( 
+                <div className="mt-4 ">
+                {friendRequests === 0 ? (
+                  <p>No pending friend requests.</p>
+                ) : (
+                  <>
+                    {friendRequestUsers.map((username, index) => (
+                      <div key={index} className="mb-2 p-2 border rounded">
+                        <p>{username} has sent you a friend request.</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            className="bg-green-600 text-white px-3 py-1 rounded"
+                            onClick={() => {
+                              alert(`You accepted the friend request from ${username}`);
+                              setFriendRequests((prev) => Math.max(prev - 1, 0));
+                              setFriendRequestUsers((prev) => prev.filter((user) => user !== username));
+                              setFriendsList((prev) => [...prev, username]);
+                              socket?.emit('friend-request-accepted', { toUsername: username, fromUsername: userName! });
+                            }}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            className="bg-red-600 text-white px-3 py-1 rounded"
+                            onClick={() => {
+                              alert(`You declined the friend request from ${username}`);
+                              setFriendRequests((prev) => Math.max(prev - 1, 0));
+                              setFriendRequestUsers((prev) => prev.filter((user) => user !== username));
+                            }}
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+              )}
+              
+          </section>
 
           <div className="mt-3 flex flex-col gap-2">
             <input
@@ -353,128 +419,73 @@ export default function SocketDemo() {
             </button>
           </div>
 
-          <section className='grid grid-cols-2 gap-1'>
-            <button className='bg-sky-300 p-2 mt-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
-            title={undefined}
-            onClick = {() => setViewingFriendRequests(true)} >
-              <ThreeDText text="Friend Requests"/>{friendRequests > 0 ? `(${friendRequests})` : ''}</button>
-          <button className='bg-green-300 p-2 mt-2 ml-2 rounded-xl font-semibold hover:cursor-pointer flex gap-1'
-            title={undefined}
-            onClick = {() => setViewingFriendsList(!viewingFriendsList)} >
-              <ThreeDText text="My Friends"/>{friendsList.length > 0 ? `(${friendsList.length})` : ''}</button>
-          {viewingFriendsList && (
-            <div className="mt-4 Flex">
-              {friendsList.length === 0 ? (
-                <p>You have no friends added yet.</p>
-              ) : (
-                <ul className="space-y-1 h-full text-left">
-                  {friendsList.map((friend, index) => (
-                    <li key={index} className="text-lg flex w-full">
-                      {`Friend Name: ${friend}`}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-          </section>
+          
           {/* Display messages and users */}
           {!viewingFriendRequests ? (
             /* Display chat messages and all users when not viewing friend requests */
             <>
-          <ul className="mt-4 space-y-1 max-h-40 overflow-auto text-left">
-            <motion.div className='border-2 flex justify-center mb-2'
-            initial={{backgroundColor: 'rgba(255, 255, 255, 0)'}}
-            animate={{backgroundColor: 'linear-gradient(90deg, rgba(30,0,128,1) 50%, rgba(2,192,203,1) 80%, rgba(200,0,0,1) 100%, )'}}
-            transition={{duration: 2, repeat: Infinity, repeatType: 'mirror'}}>
-            
-            <ThreeDText text="Public Chat Messages" className='text-2xl'
-            />
-            </motion.div>
-            {messages.map((m, i) => (
-              <li key={i} className="text-sm flex">
-                {m}
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4">
-            {userTyping && (
-              <p className="italic text-gray-500">{`${userTyping.username} ${userTyping.msg}`}</p>
-            )}
-          </div>
-          <div className="mt-4">
-            <h3 className="font-bold mb-2">All Connected Users:</h3>
-            <ul className="space-y-1 h-full text-left">
-              {allUsers.map((user, index) => (
-                <li key={index} className="text-lg flex w-full">
-                  {/* Display 'You' if the user is the current user */}
-                  {`User Name: ${user.username !== userName ? user.username : 'You'} `} 
-                  <div className='ml-auto'>
-                  {/* Only show "Add Friend" button if not self and not already a friend */}
-                  {user.username === userName ? (
-                    null
-                  ) : friendsList.includes(user.username!) ? (
-                    <span className='font-semibold text-green-600'>Friends</span>
-                  ) : (
-                  <button className='bg-orange-500/80 rounded-xl px-1 font-semibold'
-                  title={undefined}
-                  onClick={() => user.username && handleFriendRequest(user.username)}>{userName !== user.username && <ThreeDText text="Add Friend"/>}</button>
-                  )}
-                  
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          </>
-          ) : 
-          (
-        <div className="mt-4">
-        {friendRequests === 0 ? (
-          <p>No pending friend requests.</p>
-        ) : (
-          <>
-          {friendRequestUsers.map((username, index) => (
-            <div key={index} className="mb-2 p-2 border rounded">
-              <p>{username} has sent you a friend request.</p>
-              <div className="flex gap-2 mt-2">
-                <button
-                  className="bg-green-600 text-white px-3 py-1 rounded"
-                  onClick={() => {
-                    alert(`You accepted the friend request from ${username}`);
-                    setFriendRequests((prev) => Math.max(prev - 1, 0));
-                    setFriendRequestUsers((prev) => prev.filter((user) => user !== username));
-                    setFriendsList((prev) => [...prev, username]);
-                    socket?.emit('friend-request-accepted', { toUsername: username, fromUsername: userName!});
+              <ul className="mt-4 space-y-1 max-h-40 overflow-auto text-left">
+                <motion.div className='border-2 flex justify-center mb-2 rounded-2xl'
+                  style={{
+                    backgroundImage: `linear-gradient(
+                      90deg,
+                      rgba(0, 204, 255, 1) 0%,
+                      rgba(29, 252, 0, 0.71) 32%,
+                      rgba(236, 0, 32, 0.75) 48%,
+                      rgba(236, 0, 32, 0.75) 62%,
+                      rgba(29, 252, 0, 0.71) 70%,
+                      rgba(0, 204, 255, 1) 100%
+                    )`,
+                    backgroundSize: "200% 100%",
                   }}
-                >
-                  Accept
-                </button>
-                <button
-                  className="bg-red-600 text-white px-3 py-1 rounded"
-                  onClick={() => {
-                    alert(`You declined the friend request from ${username}`);
-                    setFriendRequests((prev) => Math.max(prev - 1, 0));
-                    setFriendRequestUsers((prev) => prev.filter((user) => user !== username));
-                  }}
-                >
-                  Decline
-                </button>
+                  initial={{ backgroundPosition: "0% 50%" }}
+                  animate={{ backgroundPosition: "100% 50%" }}
+                  transition={{ duration: 2, repeat: Infinity, repeatType: "mirror" }}>
+
+                  <ThreeDText text="Public Chat Messages" className='text-2xl'
+                  />
+                </motion.div>
+                {messages.map((m, i) => (
+                  <li key={i} className="text-sm flex">
+                    {m}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
+                {userTyping && (
+                  <p className="italic text-gray-500">{`${userTyping.username} ${userTyping.msg}`}</p>
+                )}
               </div>
-            </div>
-          ))}
-          </>
-        )}
-        
-          <button
-            className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
-            onClick={() => setViewingFriendRequests(false)}
-          >
-            Back to Chat
-          </button>
-        </div>
-        
-          )}
+              <div className="mt-4">
+                <h3 className="font-bold mb-2">All Connected Users:</h3>
+                <ul className="space-y-1 h-full text-left">
+                  {allUsers.map((user, index) => (
+                    <li key={index} className="text-lg flex w-full">
+                      {/* Display 'You' if the user is the current user */}
+                      {`User Name: ${user.username !== userName ? user.username : 'You'} `}
+                      <div className='ml-auto'>
+                        {/* Only show "Add Friend" button if not self and not already a friend */}
+                        {user.username === userName ? (
+                          null
+                        ) : friendsList.includes(user.username!) ? (
+                          <span className='font-semibold text-green-600'>Friends</span>
+                        ) : (
+                          <button className='bg-orange-500/80 rounded-xl px-1 font-semibold'
+                            title={undefined}
+                            onClick={() => user.username && handleFriendRequest(user.username)}>{userName !== user.username && <ThreeDText text="Add Friend" />}</button>
+                        )}
+
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          ) :
+            (
+             <div> Test </div>
+
+            )}
         </div>
 
       )
